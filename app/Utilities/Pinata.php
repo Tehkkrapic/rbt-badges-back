@@ -24,7 +24,6 @@ class Pinata
 
     function pinFileToIPFS(string $filePath, array $metadata = null): array
     {
-        error_log($filePath);
         $options = [
             RequestOptions::MULTIPART => [
                 [
