@@ -26,7 +26,8 @@ Route::middleware(['auth:sanctum', 'isAdmin'])->group(function () {
     Route::get('/blockchains', [BlockchainController::class, 'index']);
 
     Route::get('/badges/{blockchain}', [BadgeController::class, 'index']);
-    Route::post('/badges/mint', [BadgeController::class, 'mint']);
+    Route::get('/badge-ids/{blockchain}', [BadgeController::class, 'getAllIds']);
+    Route::post('/badges', [BadgeController::class, 'store']);
     Route::post('/badges/refresh', [BadgeController::class, 'refresh']);
     Route::put('/badges/sentToAddress/{id}', [BadgeController::class, 'updateSentToAddress']);
 });

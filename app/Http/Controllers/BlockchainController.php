@@ -12,9 +12,15 @@ class BlockchainController extends Controller
      * Display a listing of the resource.
      */
     public function index()
-    {
-        $blockchains = Blockchain::get();
-        return response()->json(['message'=> 'Blockchains fetched successfully', 'blockchains'=>$blockchains]);
+    {   
+        try {
+            $blockchains = Blockchain::get();
+            return response()->json(['message'=> 'Blockchains fetched successfully', 'blockchains'=>$blockchains]);    
+        }
+        catch (\Exception $e) {
+            report($e);
+            return response()->json(['There was an error while fetching blockchains'], 500);
+        }
     }
 
     /**

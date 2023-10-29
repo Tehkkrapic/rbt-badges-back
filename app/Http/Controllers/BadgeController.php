@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\Badge;
 use App\Models\Blockchain;
+use Carbon\Carbon;
 use GuzzleHttp\RequestOptions;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
@@ -20,8 +21,26 @@ class BadgeController extends Controller
      */
     public function index(Blockchain $blockchain)
     {
-        $badges = Badge::where('blockchain_id', $blockchain->id)->paginate(12);
-        return response()->json(['message' => 'Badges fetched successfully', 'badges' => $badges], 200);
+        try {    
+            $badges = Badge::where('blockchain_id', $blockchain->id)->paginate(12);
+            return response()->json(['message' => 'Badges fetched successfully', 'badges' => $badges], 200);
+        } catch (\Exception $e) {
+            report($e);
+            return response()->json(['There was an error while fetching badges'], 500);
+        }
+    }
+
+    public function getAllIds(Blockchain $blockchain)
+    {
+        try {     
+            $badges = Badge::where('blockchain_id', $blockchain->id)->get()->map(function ($el) {
+                return (int)$el->token_id;
+            });
+            return response()->json(['message' => 'Badge ids fetched successfully', 'badges' => $badges], 200);
+        } catch (\Exception $e) {
+            report($e);
+            return response()->json(['There was an error while uploading data to IPFS'], 500);
+        }        
     }
 
     /**
@@ -44,26 +63,33 @@ class BadgeController extends Controller
             return response()->json($validator->messages(), 500);
         }
 
-        $path = Storage::disk('public')->put('images/', $request->image);
-        $fullPath = Storage::disk('public')->path($path);
-    
-        $pinata = new Pinata(env('PINATA_API_KEY'), env('PINATA_SECRET_API_KEY'));
-        $responseFile = $pinata->pinFileToIPFS($fullPath);
+        try {
+            $path = Storage::disk('public')->put('images/', $request->image);
+            $fullPath = Storage::disk('public')->path($path);
+        
+            $pinata = new Pinata(env('PINATA_API_KEY'), env('PINATA_SECRET_API_KEY'));
+            $responseFile = $pinata->pinFileToIPFS($fullPath);
 
-        $metaData = [
-            "name" => $request->name,
-            "description" => $request->description,
-            "image" => "https://gateway.pinata.cloud/ipfs/" . $responseFile['IpfsHash'],
-            "properties" => json_decode($request->properties)
-        ];
+            $metaData = [
+                "name" => $request->name,
+                "description" => $request->description,
+                "image" => "https://gateway.pinata.cloud/ipfs/" . $responseFile['IpfsHash'],
+                "properties" => json_decode($request->properties),
+                "created_at" => Carbon::now(),
+                "local_image" => $path
+            ];
 
 
-        $fileName = substr($path, strrpos($path, '/') + 1, strrpos($path, '.') - strpos($path, '/') + 1 - 3);
-        Storage::disk('public')->put('metadata/' . $fileName . '.json', json_encode($metaData));
+            $fileName = substr($path, strrpos($path, '/') + 1, strrpos($path, '.') - strpos($path, '/') + 1 - 3);
+            Storage::disk('public')->put('metadata/' . $fileName . '.json', json_encode($metaData));
 
-        $responseJson = $pinata->pinJSONToIPFS($metaData);
+            $responseJson = $pinata->pinJSONToIPFS($metaData);
 
-        return response()->json(['message' => 'Badge created successfully', 'responseJson' => $responseJson, 'responseFile' => $responseFile], 200);     
+            return response()->json(['message' => 'Badge created successfully', 'responseJson' => $responseJson, 'responseFile' => $responseFile], 200);     
+        } catch (\Exception $e) {
+            report($e);
+            return response()->json(['There was an error while uploading data to IPFS'], 500);
+        }
     }
 
     public function updateSentToAddress(Request $request, $id) {
@@ -117,9 +143,10 @@ class BadgeController extends Controller
                         'token_id' => $asset['tokenId'],
                         'original_address' => $request->original_address,
                         'properties' => isset($asset['properties']) ? $asset['properties'] : null,
-                        'user_id' => $user->id
+                        'user_id' => $user->id,
+                        'local_img_path' => env('APP_URL') . '/storage//' . $asset['local_img_path'],
+                        'badge_created_at' => $asset['badge_created_at']
                     ]);
-
                     $badge->save();
                 }
 
