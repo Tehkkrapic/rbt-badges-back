@@ -12,7 +12,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use App\Utilities\Pinata;
-use User;
 
 class BadgeController extends Controller
 {
@@ -134,13 +133,5 @@ class BadgeController extends Controller
             return response()->json(['There was an error while refreshing badges'], 500);
         }
 
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
     }
 }

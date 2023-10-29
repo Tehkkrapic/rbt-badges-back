@@ -27,10 +27,5 @@ class BlockchainSeeder extends Seeder
             'name' => 'Near',
             'code' => 'NEAR',
         ]);
-        
-        $factory->create([
-            'name' => 'Cardano',
-            'code' => 'CARDANO',
-        ]);
     }
 }
